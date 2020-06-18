@@ -9,6 +9,7 @@ const mongoose = require("mongoose");
 
 // Import our routes
 const cardRouter = require("./routes/card.route");
+const userRouter = require("./routes/user.route");
 
 // Initialize express app
 const app = express();
@@ -22,8 +23,10 @@ db.once("open", () => console.log("Connected to MongoDB Database."));
 
 // Utilise middlewares for our routes
 app.use("/api/cards", cardRouter);
+app.use("/api/users", userRouter);
 
-app.listen(process.env.PORT || 5000, (err) => {
+PORT = process.env.PORT || 5000;
+app.listen(PORT, (err) => {
   if (err) {
     console.log("There was an error starting the server!");
   }

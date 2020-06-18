@@ -19,7 +19,7 @@ const cardSchema = mongoose.Schema({
   example_code: {
     type: String
   }
-});
+}, {timestamps: true});
 
 const Card = mongoose.model("Card", cardSchema);
 module.exports = Card;
