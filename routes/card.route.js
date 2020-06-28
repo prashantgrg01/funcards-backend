@@ -1,7 +1,8 @@
 const express = require("express");
 const Card = require("../models/card.model");
+const { authenticateToken } = require("../middlewares/auth");
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Middleware - Retrieve a card from the database if it exists
 const getCard = async (req, res, next) => {
@@ -22,7 +23,8 @@ const getCard = async (req, res, next) => {
 router.get("/", async (req, res) => {
   let cards;
   try {
-    cards = await Card.find();
+    // Fetch all cards from the database in descending order based on their creation date
+    cards = await Card.find().sort({ "createdAt": "desc" });
     res.status(200).json(cards);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,17 +32,17 @@ router.get("/", async (req, res) => {
 });
 
 // Get a single card
-router.get("/:id", getCard, (req, res) => {
+router.get("/:id", authenticateToken, getCard, (req, res) => {
   res.status(200).json(res.card);
 });
 
 // Create a new card
-router.post("/", async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
   const newCard = new Card({
     title: req.body.title,
     function_name: req.body.function_name,
     description: req.body.description,
-    parameters: req.body.parameters.split(","),
+    parameters: req.body.parameters,
     example_code: req.body.example_code
   });
   try {
@@ -52,7 +54,7 @@ router.post("/", async (req, res) => {
 });
 
 // Update a card
-router.patch("/:id", getCard, async (req, res) => {
+router.patch("/:id", authenticateToken, getCard, async (req, res) => {
   // Get the card passed by middleware
   let card = res.card;
 
@@ -67,7 +69,7 @@ router.patch("/:id", getCard, async (req, res) => {
     card.description = req.body.description;
   }
   if (req.body.parameters != null && req.body.parameters != card.parameters.join(",")) {
-    card.parameters = req.body.parameters.split(",");
+    card.parameters = req.body.parameters;
   }
   if (req.body.example_code != null && req.body.example_code != card.example_code) {
     card.example_code = req.body.example_code;
@@ -83,9 +85,9 @@ router.patch("/:id", getCard, async (req, res) => {
 });
 
 // Delete a card
-router.delete("/:id", getCard, async (req, res) => {
+router.delete("/:id", authenticateToken, getCard, async (req, res) => {
   try {
-    await res.card.remove()
+    await res.card.remove();
     res.status(200).json({ message: "Resource deleted successfully!" });
   } catch (err) {
     res.status(500).json({ err: err.message });

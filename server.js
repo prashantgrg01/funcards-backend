@@ -13,7 +13,15 @@ const userRouter = require("./routes/user.route");
 
 // Initialize express app
 const app = express();
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Configure our Headers
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization");
+  next();
+});
 
 // Connect to MongoDB Database using Mongoose
 mongoose.connect(process.env.DATABASE_URI, {useNewUrlParser: true, useUnifiedTopology: true});

@@ -10,17 +10,18 @@ const User = require("../models/user.model");
 const RefreshToken = require("../models/refreshToken.model");
 const { generateAccessToken, authenticateToken, generateRefreshToken } = require("../middlewares/auth");
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Handle New User Sign Up
 router.post("/signup", async (req, res) => {
   // Get all the values from the form fields
-  const username = req.body.username;
+  const first_name = req.body.first_name;
+  const last_name = req.body.last_name;
   const email = req.body.email;
   const password = req.body.password;
 
   // Validate the required form fields
-  if (username == null || email == null || password == null) {
+  if (first_name == null || last_name == null || email == null || password == null) {
     return res.status(400).json({ error: "One or more fields are empty!" });
   }
 
@@ -34,7 +35,8 @@ router.post("/signup", async (req, res) => {
 
     // Create a new user
     const newUser = User({
-      username: username,
+      first_name: first_name,
+      last_name: last_name,
       email: email,
       password: passwordHash
     });
@@ -109,8 +111,14 @@ router.post("/token", async (req, res) => {
   } 
 });
 
+// Handle Request for currently Logged-In User
+router.get("/me", authenticateToken, (req, res) => {
+  res.status(200).json(req.user);
+});
+
 // Handle User Log Out
 router.post("/logout", authenticateToken, async (req, res) => {
+  /*
   const refreshToken = req.body.token;
   if (!refreshToken) return res.sendStatus(401);
   try {
@@ -123,6 +131,8 @@ router.post("/logout", authenticateToken, async (req, res) => {
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
+  */
+  res.status(200).json({ success: true });
 });
 
 // Get User Dashboard
