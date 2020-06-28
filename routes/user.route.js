@@ -112,8 +112,13 @@ router.post("/token", async (req, res) => {
 });
 
 // Handle Request for currently Logged-In User
-router.get("/me", authenticateToken, (req, res) => {
-  res.status(200).json(req.user);
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ "email": req.user.email });
+    res.status(200).json({ email: user.email, first_name: user.first_name, last_name: user.last_name });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Handle User Log Out
@@ -133,16 +138,6 @@ router.post("/logout", authenticateToken, async (req, res) => {
   }
   */
   res.status(200).json({ success: true });
-});
-
-// Get User Dashboard
-router.get("/dashboard", authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findOne({ "email": req.user.email });
-    res.status(200).json({ email: user.email, username: user.username });
-  } catch(err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 module.exports = router;
