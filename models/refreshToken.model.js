@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const refreshTokenSchema = mongoose.Schema({
   token: {
-    type: String
+    type: String,
+    required: true
   }
 }, {timestamps: true});
 

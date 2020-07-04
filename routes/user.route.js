@@ -1,14 +1,9 @@
-// If its not production environment, load our .env file for configuration
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
-}
-
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const RefreshToken = require("../models/refreshToken.model");
-const { generateAccessToken, authenticateToken, generateRefreshToken } = require("../middlewares/auth");
+const { generateAccessToken, authenticateUser } = require("../middlewares/auth");
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,7 +20,7 @@ router.post("/signup", async (req, res) => {
     return res.status(400).json({ error: "One or more fields are empty!" });
   }
 
-  try {
+  try {  
     // Check if the email already exists in our database
     const emailExists = await User.findOne({ "email": email });
     if (emailExists) return res.status(400).json({ error: "Email already exists!" });
@@ -40,11 +35,14 @@ router.post("/signup", async (req, res) => {
       email: email,
       password: passwordHash
     });
-    // Save the user to the database
-    await newUser.save();
 
     // Generate JWT access token for the user for a successful signup
-    const accessToken = generateAccessToken({ email: newUser.email });
+    const accessToken = generateAccessToken({ id: newUser._id.toString() });
+    newUser.tokens.push({ token: accessToken });
+    
+    // Save the new user to the database
+    await newUser.save();
+
     res.status(201).json({ accessToken: accessToken });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -74,17 +72,12 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Incorrect password!" });
     }
 
-    // Generate JWT access token for the user for a successful login
-    const accessToken = generateAccessToken({ email: user.email });
-    const refreshToken = generateRefreshToken({ email: user.email });
-    // Create new refresh token entry
-    const newRefreshToken = RefreshToken({
-      token: refreshToken
-    });
-    await newRefreshToken.save();
+    // Generate JWT access token for the user for a successful login and save it to the database
+    const accessToken = generateAccessToken({ id: user._id.toString() });
+    user.tokens.push({ token: accessToken });
+    await user.save();
 
-    res.status(200).json({ accessToken: accessToken, refreshToken: newRefreshToken.token });
-
+    res.status(200).json({ accessToken: accessToken });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -102,7 +95,7 @@ router.post("/token", async (req, res) => {
     jwt.verify(tokenObj.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
       if (err) return res.sendStatus(403);
       // Generate new access token for the user
-      const newAccessToken = generateAccessToken({ email: user.email });
+      const newAccessToken = generateAccessToken(user);
       res.status(200).json({ accessToken: newAccessToken });
     });
 
@@ -112,17 +105,17 @@ router.post("/token", async (req, res) => {
 });
 
 // Handle Request for currently Logged-In User
-router.get("/me", authenticateToken, async (req, res) => {
+router.get("/me", authenticateUser, async (req, res) => {
   try {
-    const user = await User.findOne({ "email": req.user.email });
-    res.status(200).json({ email: user.email, first_name: user.first_name, last_name: user.last_name });
+    const currentUser = req.user;
+    res.status(200).json({ email: currentUser.email, first_name: currentUser.first_name, last_name: currentUser.last_name });
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Handle User Log Out
-router.post("/logout", authenticateToken, async (req, res) => {
+router.post("/logout", authenticateUser, async (req, res) => {
   /*
   const refreshToken = req.body.token;
   if (!refreshToken) return res.sendStatus(401);
@@ -137,7 +130,15 @@ router.post("/logout", authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
   */
-  res.status(200).json({ success: true });
+  try {
+    const currentUser = req.user;
+    // Reset the tokens for current user
+    currentUser.tokens = [];
+    await currentUser.save();
+    res.status(200).json({ success: true });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

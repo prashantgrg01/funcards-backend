@@ -1,6 +1,6 @@
 const express = require("express");
 const Card = require("../models/card.model");
-const { authenticateToken } = require("../middlewares/auth");
+const { authenticateUser } = require("../middlewares/auth");
 
 const router = express.Router({ mergeParams: true });
 
@@ -32,12 +32,12 @@ router.get("/", async (req, res) => {
 });
 
 // Get a single card
-router.get("/:id", authenticateToken, getCard, (req, res) => {
+router.get("/:id", authenticateUser, getCard, (req, res) => {
   res.status(200).json(res.card);
 });
 
 // Create a new card
-router.post("/", authenticateToken, async (req, res) => {
+router.post("/", authenticateUser, async (req, res) => {
   const newCard = new Card({
     title: req.body.title,
     function_name: req.body.function_name,
@@ -54,7 +54,7 @@ router.post("/", authenticateToken, async (req, res) => {
 });
 
 // Update a card
-router.patch("/:id", authenticateToken, getCard, async (req, res) => {
+router.patch("/:id", authenticateUser, getCard, async (req, res) => {
   // Get the card passed by middleware
   let card = res.card;
 
@@ -85,7 +85,7 @@ router.patch("/:id", authenticateToken, getCard, async (req, res) => {
 });
 
 // Delete a card
-router.delete("/:id", authenticateToken, getCard, async (req, res) => {
+router.delete("/:id", authenticateUser, getCard, async (req, res) => {
   try {
     await res.card.remove();
     res.status(200).json({ message: "Resource deleted successfully!" });
